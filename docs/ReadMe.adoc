@@ -1,0 +1,472 @@
+// NOTE: This is AsciiDoc (mostly for the TOC), see: http://asciidoctor.org/docs/asciidoc-syntax-quick-reference/
+// NO EMPTY LINES UNTIL THE END OF THE HEADER
+// Quickly: bold and italics are the same
+// Checkmarks: [ ] or [x]
+// Lists: instead of spaces at the beginning (which are allowed), it's number of marks:
+// * first level unnumbered
+// ** second level unnumbered
+// . first level numbered
+// .. second level numbered
+// Links: http://url[Descriptive Text That's Visible]
+// WikiLinks: link:other-page[Other Page]
+// Header links (in-document): <<header-anchor-name>>
+// Images: image:path/to/image[]
+// Note that because of the :imagesdir: below images/ will be prepended if there's no /
+// Settings:
+:idprefix:
+:idseparator: -
+ifndef::env-github[:icons: font]
+ifdef::env-github,env-browser[]
+:toc: macro
+:toclevels: 4
+endif::[]
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:toc-title: pass:q[**Table of Contents**]
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :notebook:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
+:imagesdir: images
+// END OF THE HEADER -- You may resume having empty lines
+
+toc::[]
+
+image:https://raw.githubusercontent.com/wiki/synthetos/g2/images/g2core.png[width="300" height="129" alt="g2core]
+
+
+NOTE: This is the programmer's documentation for the official https://github.com/synthetos/node-g2core-api[g2core-api node module]: `@synthetos/g2core-api`.
+
+## Usage summary
+
+The `g2core-api` module handles all of the protocol involved in sending commands and files to a https://github.com/synthetos/g2[g2core device], along with handling responses and errors appropriately.
+
+Much of the interaction with the `g2core-api` module is handled by https://nodejs.org/api/events.html[EventEmitter] events. This basically means that you write `g2.on('eventName', function(value) {...})` in order to handle them, and they can generally happen "at any time". (See the explanation of each event below to see when you can expect each type of event.)
+
+The general flow of using the `g2core-api` module is shown in <<fig1>>.
+
+[[fig1]]
+.g2core-api general code flow
+image::g2core-node-codeflow@2x.png[width=350]
+
+In code, the looks roughly like:
+
+[[code-flow-code]]
+[source,javascript]
+.example-1.js
+----
+// Require "@synthetos/g2core-api" to get access to the G2coreAPI class
+const G2coreAPI = require("@synthetos/g2core-api");
+// Then create a G2coreAPI object called 'g2'
+var g2 = new G2coreAPI();
+// Setup an error handler
+g2.on('error', function(error) {
+  // ...
+});
+// Open the first connected device found
+g2.openFirst();
+// OR: Open a specific device with one serial ports:
+//    g2.open(portPath);
+// OR: Open a specific G2 Core device with two virtual serial ports:
+//    g2.open(portPath,
+//            {dataPortPath : dataPortPath});
+
+// Make a status handler
+var statusHandler = function(st) {
+  process.stdout.write(
+    util.inspect(status) + "\n"
+  );
+};
+
+// Make a close handler
+var closeHandler = function() {
+  // Stop listening to events when closed
+  // This is only necessary for programs that don't exit.
+  g2.removeListener('statusChanged', statusHandler);
+  g2.removeListener('close', closeHandler);
+}
+
+
+// Setup an open handler, that will then setup all of the other handlers
+g2.on('open', function() {
+  // Handle status reports ({"sr":{...}})
+  g2.on('statusChanged', statusHandler);
+  // handle 'close' events
+  g2.on('close', closeHandler);
+
+  // We now have an active connection to a g2core device.
+  // We can use g2.set(...) to set parameters on the g2core device,
+  // and g2.get() to read parameters (returns a promise, BTW).
+
+  // We can also use g2.sendFile() to handle sending a file.
+});
+
+----
+
+## API
+
+### Errors
+
+The `'error'` event will pass one parameter: a object of type `G2Error`, which inherits from node's built-in `Error`.
+
+It uses the `Error` class' `name` and `message` properties. All `G2Error` objects will have a `name` in the format of `G2`+_N_+`Error`. Listed below are the specific error names and what they mean, along with when they might occur.
+
+In addition to the `Error` class parameters, a `G2Error` class has a `data` parameter with the raw data that caused the error.
+
+.G2Error Names
+G2ParserError::
+  * *Meaning*: Data coming from the g2core device was malformed
+  * *When*: During an open connection
+  * *Data Contents*:
+  ** `err` is the error from the JSON parser
+  ** `part` is the raw string that was given to the parser
+
+G2ResponseError::
+  * *Meaning*: G2 reported an Error
+  * *When*: During an open connection
+  * *Data Contents*: The exact _parsed_ JSON response from the g2core device.
+
+G2InAlarmError::
+  * *Meaning*: G2 reported an Error because the machine is in an Alarm state
+  * *When*: During an open connection, after an Alarm was triggered. There will be several of these after a <<flush,`flush()`>> that can be safely ignored.
+  * *Data Contents*: The exact _parsed_ JSON response from the g2core device.
+
+G2OpenError::
+  * *Meaning*: g2core device failed to open a connection. This may occur if one was already open, in which case there is no change to the already-open connection, but the new one was not attempted.
+  * *When*: Any time after <<open,`g2.open()`>> has been called.
+  * *Data Contents*: _None._
+
+G2SerialPortError::
+  * *Meaning*: The underlying serialport object had an error.
+  * *When*: Anytime after <<open,`g2.open()`>> was called.
+  * *Data contents*: The raw error object from serialport.
+
+G2WriteError::
+  * *Meaning*: The underlying serialport object reported a write error.
+  * *When*: Anytime there's an open connection.
+  * *Data Contents*: The raw error from serialport.
+
+G2ReadStreamError::
+  * *Meaning*: The underlying readStream used by <<sendFile,`g2.sendFile()`>> reported an error.
+  * *When*: After calling <<sendFile,`g2.sendFile()`>>
+  * *Data Contents*: The raw error from readStream.
+
+G2OpenFirstError::
+  * *Meaning*: <<openFirst,`g2.openFirst()`>> was unable to open a g2core device.
+  * *When*: After calling `g2.openFirst()`.
+  * *Data Contents*: The `results` value returned by <<list,`g2.list()`>>.
+
+G2OpenFirstListError::
+  * *Meaning*: <<openFirst,`g2.openFirst()`>> was unable to list g2core devices.
+  * *When*: After calling `g2.openFirst()`.
+  * *Data Contents*: The `err` value returned by <<list,`g2.list()`>>.
+
+
+### Classes and Methods
+
+#### Class G2CoreAPI
+
+[[open]]
+##### open( _path_or_port_, _options_ )
+  * Open a connection to a g2core device. This may use one or two serial ports.
++
+--
+  *Returns:*:: _nothing_
+  `path_or_port`::
+  * `string` representing the path (or port name on Windows) of the serial port of the g2core device.
+  * This is the control serial port when in dual-port mode (which can only happen when connected over USB), and will be opened first.
+  `options`::
+  * `object` containing additional options:
+  `dataPortPath`:::
+  ** A `string` representing the path (or port name) of the Data (secondary) serial port for g2core devices connected over USB.
+
+[source,javascript]
+.open-example.js
+----
+const G2coreAPI = require("@synthetos/g2core-api");
+var g2 = new G2coreAPI();
+
+// For a single port connection:
+g2.open('/dev/cu.usbmodem142411', {dataPortPath : args.dataport});
+
+// OR, for a g2core device with two virtual ports:
+var list_results = { // see g2.list() for how to get this structure
+  path: '/dev/cu.usbmodem12345',
+  dataPortPath: '/dev/cu.usbmodem12346'
+}
+g2.open(list_results.path, {dataPortPath : list_results.dataPortPath});
+----
+<1> See <<list,`g2.list()`>>
+--
+
+[[close]]
+##### close()
+  * Close the connection.
++
+--
+  *Returns:*:: _nothing_
+--
+
+[[write]]
+##### write( _value_ )
+  * Write value to the g2core device.
+  *Returns:*:: _nothing_
+  `value`::
+  *** May be a `string`, `object`, or array-like (according to https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray[`Array.isArray(value)`]).
+  *** For strings:
++
+--
+  * A line-ending (`\n`) is added if one is missing
+  * The string it checked for single-character commands (https://github.com/synthetos/g2/wiki/Feedhold,-Resume,-and-Other-Simple-Commands[Feedhold, Resume, etc.]) or bare JSON commands (https://github.com/synthetos/g2/wiki/JSON-Operation[JSON Operation]), and those will be sent immediately. If there are two ports, then they will be sent down the Control channel instead of the Data channel.
+  * All other strings are added to the line buffer and sent in order as the g2core device is ready for them. If there are two ports, lines from the line buffer are sent down the Data channel.
+
+[source,javascript]
+.write-string-example.js
+----
+// Assumes g2 is a G2coreAPI object that has been opened.
+// Add "g0x10\n" to the line buffer, which will be sent in order as the g2core device is ready.
+g2.write("g0x10");
+
+// Send "{sr:n}\n" immediately.
+// Note: g2.set() should be used for this purpose instead!
+g2.write('{sr:n}\n');
+
+// Issue a feed hold ("pause") immediately.
+g2.write('!');
+----
+<1> See <<set,`g2.set()`>>
+--
+
+  *** For objects that are not array-like:
++
+--
+  * The object is sent to `JSON.stringify(value) + '\n';`, then sent immediately.
+
+[source,javascript]
+.write-object-example.js
+----
+// Assumes g2 is a G2coreAPI object that has been opened.
+// Send '{"sr":null}\n' immediately.
+// Note: g2.set() should be used for this purpose instead!
+g2.write({sr: null});
+----
+<1> See <<set,`g2.set()`>>
+--
+
+  *** For "Arrays" (objects that are array-like according to https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray[`Array.isArray(value)`]):
++
+--
+  * Each item of the array is checked for a line-ending (`\n`) and then sent directly to the line buffer.
+  * *Do NOT send commands or JSON this way.* They will _not_ get sent ahead of moves or put in the Command channel.
+  * This is intended for sending files or chunks of GCode only, and is the most efficient way to do so.
+
+[source,javascript]
+.write-array-example.js
+----
+// Assumes g2 is a G2coreAPI object that has been opened.
+// Send the following lines to the line buffer with minimal processing:
+var lines = "G1 F2000\nX0 Y100\nX100\nY0\nX0\nM2"
+g2.write(lines.split('\n'));
+----
+--
+
+
+[[writeWithPromise]]
+##### writeWithPromise( _value_, _fulfilled_function_ )
+  * Write value to the g2core device, returning a promise to be fulfilled when the device responds.
+  * The `promise.notify(response_or_sr)` function is called with the same value that is sent to the `fulfilledFunction`, and can be monitored by adding a `progress()` handler on the promise. This is useful for updating of interfaces or such, but should not be used to replace the `fulfilledFunction`.
++
+--
+  *Returns:*:: http://documentup.com/kriskowal/q/[Q promise].
+  `value`:: This is passed directly to <<write,`q.write()`>>.
+  `fulfilledFunction`::
+  * (_Optional_.) A function that will be called with every parsed response and status report from the g2core device.
+  * The function is to return `true` when that response or status report indicates that the write has completed, or `false` if it hasn't.
+
+[source,javascript]
+.writeWithPromise-example.js
+----
+// This function is to say the write is complete when the machine goes into stat 3
+//   using the 'stat' value in the status reports.
+// Requires 'stat' to be in your status reports.
+// This is almost identical to the default fulfilled function if none is provided.
+stat3_fulfilled_function = function (r) {
+  // If the response is a status report, it will be in the 'sr' key:
+  if (r && r['sr'] && r['sr']['stat'] && r['sr']['stat'] == 3) {
+    return true;
+  }
+  return false;
+}
+
+// This function looks for line number last_line to be acknowledged (via response),
+//   then for the machine to go to stat 3.
+// Requires 'stat' to be in your status reports,
+//   and JSON Verbosity of 4.
+var last_line = 6;
+var last_line_was_seen = false;
+var last_stat_seen = -1;
+last_line_seen_fulfilled_function = function (r) {
+  if (r && r['n'] && r['n'] == last_line) {
+    last_line_was_seen = true;
+  }
+  // If the response is a status report, it will be in the 'sr' key:
+  if (last_line_seen && r && r['sr'] && r['sr']['stat']) {
+    last_stat_seen = r['sr']['stat'];
+  }
+  return ((last_stat_seen == 3) && last_line_was_seen);
+}
+
+// Assuming some function we_are_done() exists that we want called once
+// we are done (according to fulfilled_function.)
+
+// Here are the gcode lines we wish to send
+var lines = "N1 G1 F2000\nN2 X0 Y100\nN3 X100\nN4 Y0\nN5 X0\nN6 M2"
+
+// We will use the default fulfilled_function, which waits for stat == 3 in a
+// status report.
+g2.writeWithPromise(lines).finally(function() { we_are_done(); });
+
+// If we wish to capture the responses and status reports (in this case we log them)
+// we use the progress() function of the promise.
+g2.writeWithPromise(lines)
+  .finally(function() { we_are_done(); })
+  .progress(function(st) {
+    console.log(util.inspect(st));
+  });
+
+// We will use the last_line_seen_fulfilled_function, then call we_are_done()
+g2.writeWithPromise(lines, last_line_seen_fulfilled_function).then(function() { we_are_done(); });
+
+----
+<1> See https://github.com/synthetos/g2/wiki/Status-Reports[documentation on setting up status reports.]
+<2> See https://github.com/synthetos/g2/wiki/Status-Reports#stat-values[documentation of `stat` values.]
+<3> See https://github.com/synthetos/g2/wiki/JSON-Details#response-verbosity[documentation of JSON Verbosity.]
+<4> See http://documentup.com/kriskowal/q/[documentation of Q promise handling].
+--
+
+
+[[set]]
+##### set( _value_ )
+  * Set the given value on the g2core device, returning a promise that will be finished when the last value has been set on the g2core device.
+  * The `promise.notify(response)` function is called once for every parsed response object from the g2core device. These can be monitored by adding a `progress()` handler on the promise. Note that these responses are not necessarily related to the values being `set()`. No attempt at correlation is made before `notify` is called.
++
+--
+  *Returns:*:: http://documentup.com/kriskowal/q/[Q promise].
+  `value`::
+  ** May be an `object` or array of `objects` (according to https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray[`Array.isArray(value)`]).
+  ** If the value is an `object`, then each `key: value` pair will be individually sent (in effectively random order) to the g2core device (as JSON), and the response(s) will be waited for. The promise will be chained for each value to be set.
+  ** If the value is an array of `object` values, then each element of the array will be passed to `set()` and chained onto the same promise. This is effectively the same as calling set with an object, except you have control over the order that they are sent.
+
+[source,javascript]
+.set-example.js
+----
+// We will set xvm, yvm, and zvm to 3000, then start sending a file by calling some
+// function called "send_a_file()" (that presumably could utilize g2.sendFile()).
+g2.set({xvm: 3000, yvm: 3000, zvm: 3000})
+  .then(function() { send_a_file(); });
+
+// Errors can be handled with the second parameter to then, or with a catch()
+g2.set({xvm: 3000, yvm: 3000, zvm: 3000})
+  .then(function() { send_a_file(); })
+  .catch(function(err) { all_is_lost(err); });
+
+
+// If we also wish to log the responses, we could add a progress handler:
+g2.set({xvm: 3000, yvm: 3000, zvm: 3000})
+  .then(function() { send_a_file(); })
+  .progress(function(r) {
+    console.log(util.inspect(r));
+  });
+
+
+----
+<1> See https://github.com/synthetos/g2/wiki/Configuring-Version-0.99[explanation of `xvm`, `yvm`, and `zvm` values].
+<2> See http://documentup.com/kriskowal/q/[documentation of Q promise handling].
+--
+
+
+
+[[get]]
+##### get( _key_ )
+  * Retrieve the value of the given key from the g2core device, asynchronously. What;s returned is a promise, which will be fulfilled with the resulting value.
+  * Note that internally `get()` calls `set()`, so the response format is the same.
++
+--
+  *Returns:*:: http://documentup.com/kriskowal/q/[Q promise].
+  `key`:: The key to be retrieved as a `string`. A common example would be `'sr'` to retrieve a status report.
+
+[source,javascript]
+.get-example.js
+----
+// We will get the value of xvm, or couldnt_get_xvm() with the error returned.
+g2.get("xvm")
+  .then(function(value) {
+    console.log("xvm value: " + xvm);
+  })
+  .catch(function(err) { couldnt_get_xvm(err); });
+----
+<1> See http://documentup.com/kriskowal/q/[documentation of Q promise handling].
+--
+
+[[sendFile]]
+##### sendFile( _filename_or_stdin_ , _done_callback_ )
+  * Reads a file and sends it to the g2core device.
+  * Use status reports to monitor the progress of the sending2.
+  * Use <<flush,`g2.flush()`>> to force the file to stop sending2. `done_callback` will still be called.
++
+--
+   * *Returns:*:: _nothing_
+  `filename_or_stdin`:: Either a path name (in a string) or a `readStream` object (such as `process.stdin`).
+  `done_callback`:: (_Optional._) A function for the g2core device object to call when the file has finished sending2. This will only be called after all lines have been sent AND `stat` has gone to 3 (movement stopped), 4 (program end via `M2` or `M30`), or 6 (alarm).
+
+WARNING: If `done_callback` is not provided, then when the file is done sending the connection to the g2core device *will be closed* (via <<close,`g2.close()`>>).
+--
+
+[[flush]]
+##### flush( )
+  * Clears the current send buffer, cancels any active file send, and sends a job kill (^-D) and alarm clear (`{clr:n}`) to the g2core device.
++
+--
+  *Returns:*:: _nothing_
+--
+
+
+[[list]]
+##### list( )
+  * Asynchronously get a list of g2core devices available. Returns a promise.
++
+--
+  *Returns:*:: http://documentup.com/kriskowal/q/[Q promise]. The promise will pass in the list of g2core device objects.
+[source,javascript]
+.list-example.js
+----
+var g2core device = require("g2core device");
+// Then create a g2core device object called 'g'
+var g = new g2core device();
+g2.list().then(function(results) {
+    console.log(util.inspect(results));
+  }).catch(function(err) { couldnt_list(err); });
+----
+[source,javascript]
+.list-results.js
+----
+// Results of the above should look like.
+
+[ { path: '/dev/cu.usbmodem142413',
+    serialNumber: '021323257343',
+    dataPortPath: '/dev/cu.usbmodem142411' } ]
+----
+
+--
+
+[[openFirst]]
+##### openFirst( _fail_if_more_ , _options_ )
+  * Opens the first g2core device found, passing `options` to the `open()` call.
++
+--
+  *Returns*:: _nothing_
+  `fail_if_more`:: If `true`, then `openFirst()` will fire an `error` event and return if it finds more than one attached g2core device.
+  `options`:: These options are assed to the `open()` call. Some value may be added or modified as needed.
+--

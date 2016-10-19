@@ -1,0 +1,29 @@
+{
+  "name": "g2core-api",
+  "version": "0.0.01",
+  "description": "Node module for controlling g2core devices.",
+  "main": "lib/g2core-api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Synthetos Team",
+    "email": "customerservice@synthetos.com",
+    "url": "http://www.synthetos.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/synthetos/node-g2core-api"
+  },
+  "license": "GPL",
+  "dependencies": {
+    "chalk": "^0.5.1",
+    "nomnom": "^1.8.0",
+    "q": "^1.1.2",
+    "serialport": "git+https://github.com/giseburt/node-serialport.git",
+    "sprintf": "^0.1.4"
+  },
+  "bin": {
+    "g2": "bin/g2.js"
+  }
+}
