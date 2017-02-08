@@ -7,10 +7,8 @@ var util = require('util');
 var fs = require('fs');
 var readline = require('readline');
 var chalk = require('chalk');
-var sprintf = require('sprintf').sprintf;
-var Q = require('q');
-var FS = require('fs');
-var readFile = Q.nfbind(FS.readFile);
+var sprintf = require("sprintf-js").sprintf;
+var fs = require('fs');
 
 var rl = null; // placeholder for readline object
 
@@ -27,20 +25,20 @@ var STAT_CODES = {
   9: "Homing"
 };
 
--p PORT, --port PORT        Name of serial port. Use -l to see the available
-                               ports. If omitted then it will attempt to
-                               auto-detect a g2core device over USB.
--d PORT, --dataport PORT    Name of data-only serial port (optional).
-                               Use -l to see the available ports.
--L                          Make or add to a a log file next to the gcode
-                               file with '.log' added to the filename.
--g LOGFILE, --log LOGFILE   Log to LOGFILE.
-                               The last -L or -g will be honored.
--l, --list                  List the available ports that can be detected.
-                               Note that this only lists USB devices.
--v                          Raise the verbosity level of the command line.
-                               (Does not effect logging to file, which is
-                               always at full verbosity.)
+// -p PORT, --port PORT        Name of serial port. Use -l to see the available
+//                                ports. If omitted then it will attempt to
+//                                auto-detect a g2core device over USB.
+// -d PORT, --dataport PORT    Name of data-only serial port (optional).
+//                                Use -l to see the available ports.
+// -L                          Make or add to a a log file next to the gcode
+//                                file with '.log' added to the filename.
+// -g LOGFILE, --log LOGFILE   Log to LOGFILE.
+//                                The last -L or -g will be honored.
+// -l, --list                  List the available ports that can be detected.
+//                                Note that this only lists USB devices.
+// -v                          Raise the verbosity level of the command line.
+//                                (Does not effect logging to file, which is
+//                                always at full verbosity.)
 
 
 var args = require('nomnom')
@@ -96,7 +94,7 @@ if (args.help) {
   return process.exit(-1);
 }
 
-var g = new g2api();
+var g = new G2coreAPI();
 var logStream = process.stderr; // We may change this later
 var startTime = new Date();
 
@@ -143,7 +141,7 @@ if (args.list) {
       log_c(util.inspect(item));
     }
 
-    if (results.length == 0) {
+    if (results.length === 0) {
       no_g2_Found();
       process.exit(0);
     }
@@ -156,12 +154,22 @@ function no_g2_Found() {
   log_c("No g2s were found. (Is it connected and drivers are installed?)");
 }
 
+// promisify fs.readFile()
+function readFile(filename) {
+    return new Promise(function (resolve, reject) {
+        fs.readFile(filename, function(err, buffer){
+            if (err) reject(err);
+            else resolve(buffer);
+        });
+    });
+}
+
 
 function parseCommand(line) {
   if (interactive) {
     // all commands start with a ., or are single-letter on a line...
-    var cmd_in;
-    if (cmd_in = line.match(/^\s*\.([a-z]+)(?:\s+(.*))?\s*$/i)) {
+    var cmd_in = line.match(/^\s*\.([a-z]+)(?:\s+(.*))?\s*$/i);
+    if (cmd_in) {
       var cmd = cmd_in[1].toLowerCase();
       var args = cmd_in[2];
 
@@ -222,7 +230,7 @@ function tryToQuit() {
 
 var maxLineNumber = 0;
 function sendFile(fileName, exitWhenDone) {
-  if (exitWhenDone == null) {
+  if (exitWhenDone === null) {
     exitWhenDone = false;
   }
 
@@ -234,13 +242,13 @@ function sendFile(fileName, exitWhenDone) {
       }
       log(util.format("### Done sending\n"));
       log_c(util.format("### Done sending\n"));
-      process.stdout.write("\n")
+      process.stdout.write("\n");
 
       sendingFile = false;
       maxLineNumber = 0;
 
       // log("closing...");
-      if (exitWhenDone == true) {
+      if (exitWhenDone === true) {
         if (rl !== null) {
           rl.close();
           rl = null;
@@ -341,7 +349,7 @@ function openg2() {
                 process.stdout.write(chalk.dim(e));
               }
 
-              tryToQuit()
+              tryToQuit();
               return;
             }
 
@@ -355,7 +363,7 @@ function openg2() {
           for (var i = 0; i < old_keypress_listeners.length; i++) {
             old_keypress_listeners[i](ch,k);
           }
-        })
+        });
 
         rl.on('line', function(line) {
           parseCommand(line);
@@ -452,14 +460,14 @@ function openg2() {
               process.stdout.write('_');
             }
 
-            process.stdout.write("| ")
+            process.stdout.write("| ");
             var percent = ((st.line/maxLineNumber) * 100);
             process.stdout.write(sprintf("%3.0f%%", percent));
 
             // if (process.stderr.isTTY) {
             //   process.stdout.write("\n")
             // } else {
-              process.stdout.write("\r")
+              process.stdout.write("\r");
             // }
           } // if st.line
           // rl.prompt(true);
