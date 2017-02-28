@@ -27,33 +27,28 @@ let STAT_CODES = {
 };
 
 let args = require('yargs')
-  .option('gcode', {
-    position: 0,
-    desc: 'Gcode file to run. If omitted, an interactive interface will be ' +
-          'presented.',
-  })
+  // .command(['send <gcode>', '* <gcode>'], 'send a gcode file', {
+  //   desc: 'Gcode file to run. If omitted, an interactive interface will be ' +
+  //         'presented.',
+  // })
   .option('port', {
     alias: 'p',
-    metavar: 'PORT',
     desc: 'Name of serial port. Use -l to see the available ports. If omitted '+
           'then `g2` will attempt to auto-detect a g2core device over USB.',
   })
   .option('dataport', {
     alias: 'd',
-    metavar: 'PORT',
     desc: 'Name of data serial port. Use -l to see the available ports. A ' +
           'value for -p must be provided if -d is provided.',
   })
   .option('log_default', {
     alias: 'L',
     boolean: true,
-    metavar: 'LOGFILE',
     desc: 'Name of file to log to. Piping STDERR to a file will do the same ' +
           'thing (and trump this option).',
   })
   .option('log', {
     alias: 'g',
-    metavar: 'LOGFILE',
     desc: 'Name of file to log to. Piping STDERR to a file will do the same ' +
           'thing (and trump this option).',
   })
@@ -64,7 +59,6 @@ let args = require('yargs')
   })
   .option('init', {
     alias: 'i',
-    metavar: 'INITFILE',
     desc: 'Optional path of a JSON file containing the initial settings to ' +
           'pass to the g2core device after connection. If opmitted, then it ' +
           ' will use the first of `./g2-core` or `/.g2-core` that is found, ' +
@@ -75,6 +69,12 @@ let args = require('yargs')
     boolean: true,
     desc: 'Read the incoming file looking for timecodes at the beginning of ' +
           'lines and use that for sending (FOR TESTING ONLY)',
+  })
+  .option('checksum', {
+    alias: 'c',
+    boolean: true,
+    desc: 'Send using checksums and sequential line numbers. ' +
+          'ONLY FOR FIRMWARES THAT SUPPORT IT.',
   })
   .help('help')
   .alias('help', 'h')
@@ -90,8 +90,8 @@ let interactive = process.stdout.isTTY && process.stdin.isTTY;
 let sendingFile = false;
 let latestMotionStatus = 0;
 
-if (args.log_default && args.gcode && !args.log) {
-  args.log = args.gcode + '.log';
+if (args.log_default && args._[0] && !args.log) {
+  args.log = args._[0] + '.log';
 }
 
 if (args.log) {
@@ -319,7 +319,6 @@ function sendFile(fileName, exitWhenDone) {
     readStream.on('error', function(e) {
 
     });
-    // args.gcode
   } else {
     startSendFile();
   }
@@ -330,11 +329,15 @@ function sendFile(fileName, exitWhenDone) {
  */
 function openg2() {
   if (!args.port) {
-    g.openFirst(/* fail if multiple:*/ true, {timedSendsOnly: args.timed});
+    g.openFirst(/* fail if multiple:*/ true, {
+      timedSendsOnly: args.timed,
+      useChecksums: args.checksum,
+    });
   } else {
     g.open(args.port, {
       dataPortPath: args.dataport,
       timedSendsOnly: args.timed,
+      useChecksums: args.checksum,
     });
   }
 
@@ -506,8 +509,8 @@ function openg2() {
         }); // g.on('statusChanged', ... )
       }
 
-      if (args.gcode || !process.stdin.isTTY) {
-        sendFile(args.gcode || process.stdin, true);
+      if (args._[0] || !process.stdin.isTTY) {
+        sendFile(args._[0] || process.stdin, true);
       }
     }
 
@@ -531,7 +534,8 @@ function openg2() {
     // });
 
     g.on('sentRaw', function(data, channel) {
-      log(util.format('[[%s%d]]%s', channel, Date.now(), data.replace(/\n+/g, '\n') ));
+      log(util.format('[[%s%d]]%s', channel, Date.now(),
+          data.replace(/\n+/g, '\n') ));
     });
 
     g.on('close', function() {
