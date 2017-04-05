@@ -440,11 +440,27 @@ function openg2() {
                 status.vel||0
               )
             );
-            if (status.he1t) {
+            if (status.he1t > 0) {
               process.stdout.write(
                 sprintf(' He1=%4.2fºC/%4.2fºC',
                   status.he1t||0,
                   status.he1st||0
+                )
+              );
+            }
+            if (status.he2t > 0) {
+              process.stdout.write(
+                sprintf(' He2=%4.2fºC/%4.2fºC',
+                  status.he2t||0,
+                  status.he2st||0
+                )
+              );
+            }
+            if (status.he3t > 0) {
+              process.stdout.write(
+                sprintf(' He2=%4.2fºC/%4.2fºC',
+                  status.he3t||0,
+                  status.he3st||0
                 )
               );
             }
