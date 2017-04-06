@@ -442,27 +442,48 @@ function openg2() {
             );
             if (status.he1t > 0) {
               process.stdout.write(
-                sprintf(' He1=%4.2fºC/%4.2fºC',
+                sprintf(' He1=%4.1fºC/%4.1fºC',
                   status.he1t||0,
                   status.he1st||0
                 )
               );
+              if (status.he1op !== undefined) {
+                process.stdout.write(
+                  sprintf('(%3.0f%%)',
+                    status.he1op*100
+                  )
+                );
+              }
             }
             if (status.he2t > 0) {
               process.stdout.write(
-                sprintf(' He2=%4.2fºC/%4.2fºC',
+                sprintf(' He2=%4.1fºC/%4.1fºC',
                   status.he2t||0,
                   status.he2st||0
                 )
               );
+              if (status.he2op !== undefined) {
+                process.stdout.write(
+                  sprintf('(%3.0f%%)',
+                    status.he2op*100
+                  )
+                );
+              }
             }
             if (status.he3t > 0) {
               process.stdout.write(
-                sprintf(' He2=%4.2fºC/%4.2fºC',
+                sprintf(' He2=%4.1fºC/%4.1fºC',
                   status.he3t||0,
                   status.he3st||0
                 )
               );
+              if (status.he3op !== undefined) {
+                process.stdout.write(
+                  sprintf('(%3.0f%%)',
+                    status.he3op*100
+                  )
+                );
+              }
             }
             process.stdout.write(
               sprintf(' (%s)\n',
