@@ -28,7 +28,7 @@ let STAT_CODES = {
 
 let args = require('yargs')
   // .command(['send <gcode>', '* <gcode>'], 'send a gcode file', {
-  //   desc: 'Gcode file to run. If omitted, an interactive interface will be ' +
+  //  desc: 'Gcode file to run. If omitted, an interactive interface will be ' +
   //         'presented.',
   // })
   .option('port', {
@@ -135,7 +135,7 @@ if (args.list) {
     }
 
     if (results.length === 0) {
-      no_g2_Found();
+      noG2Found();
       process.exit(0);
     }
   }).catch(function(e) {
@@ -146,9 +146,9 @@ if (args.list) {
 }
 
 /**
- * no_g2_Found - internal use only
+ * noG2Found - internal use only
  */
-function no_g2_Found() {
+function noG2Found() {
   log_c('No g2s were found. (Is it connected and drivers are installed?)');
 }
 
@@ -219,21 +219,29 @@ function parseCommand(line) {
   }
 }
 
+let quitAttempts = 0;
+
 /**
  * tryToQuit internal use only
  */
 function tryToQuit() {
   // TODO: verify that we are sending a file
 
-  if (STAT_CODES[latestMotionStatus].match(/^(Run|Probing$|Homing$)/)) {
+  if ((quitAttempts == 0) &&
+      STAT_CODES[latestMotionStatus].match(/^(Run|Probing$|Homing$)/)
+     ) {
     g.write('!');
+    quitAttempts++;
     return;
   } else {
-    // if (STAT_CODES[latestMotionStatus].match(/^(Hold|Init|Stop|End|Ready)$/))
-    // g.write('\x04'); // send the ^d
+    if ((quitAttempts > 0) ||
+        STAT_CODES[latestMotionStatus].match(/^(Hold|Init|Stop|End|Ready)$/)
+       ) {
+      g.write('\x04'); // send the ^d
+    }
     if (rl !== null) {
       rl.close();
-      // rl = null;
+      rl = null;
     }
 
     g.close();
@@ -425,6 +433,11 @@ function openg2() {
 
           if (status.stat) {
             latestMotionStatus = status.stat;
+            if ((quitAttempts > 0) &&
+            STAT_CODES[latestMotionStatus].match(/^(Hold|Init|Stop|End|Ready)$/)
+              ) {
+              quitAttempts = 0;
+            }
           }
 
           if (interactive) {
