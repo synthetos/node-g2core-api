@@ -494,7 +494,7 @@ function openg2() {
             }
             if (status.he3t > 0) {
               process.stdout.write(
-                sprintf(' He2=%4.1fºC/%4.1fºC',
+                sprintf(' He3=%4.1fºC/%4.1fºC',
                   status.he3t||0,
                   status.he3st||0
                 )
