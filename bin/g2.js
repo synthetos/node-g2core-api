@@ -76,6 +76,12 @@ let args = require('yargs')
     desc: 'Send using checksums and sequential line numbers. ' +
           'ONLY FOR FIRMWARES THAT SUPPORT IT.',
   })
+  .option('kill', {
+    alias: 'k',
+    boolean: true,
+    desc: 'On any error, send a KILLJOB (^D), which will abort sending and '+
+          'exit.',
+  })
   .help('help')
   .alias('help', 'h')
   .argv;
@@ -125,6 +131,9 @@ function log_c(x) {
 g.on('error', function(err) {
   log(err+'\n');
   log(util.inspect(err.data)+'\n');
+  if (args.kill && g !== undefined) {
+    g.write('\x04'); // send ^d
+  }
 });
 
 if (args.list) {
