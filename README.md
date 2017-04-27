@@ -3,13 +3,13 @@
 # g2core-api
 
 
-g2core-api is a node library module (`@synthetos/g2core-api`) and a bundled commmand-line utility (`g2`) to abstract communications and control of a device running [Synthetos g2core](https://github.com/synthetos/g2) firmware. Written and maintained by the [Synthetos](http://synthetos.com) core team.
+g2core-api is a node library module (`g2core-api`) and a bundled commmand-line utility (`g2`) to abstract communications and control of a device running [Synthetos g2core](https://github.com/synthetos/g2) firmware. Written and maintained by the [Synthetos](http://synthetos.com) core team.
 
 # Usage as a library
 
 ```javascript
-// Require "@synthetos/g2core-api" to get access to the G2coreAPI class
-const G2coreAPI = require("@synthetos/g2core-api");
+// Require "g2core-api" to get access to the G2coreAPI class
+const G2coreAPI = require("g2core-api");
 
 // Then create a g2core_api object, we'll call it 'g2' in our examples
 var g2 = new G2coreAPI();
@@ -24,16 +24,16 @@ See [./docs/ReadMe.adoc](./docs/ReadMe.adoc) for more documentation
 
 *Note: This is for advanced users and is experimental.*
 
-First install the `@synthetos/g2core-api` npm globally, so the `g2` command will be in your path:
+First install the `g2core-api` npm globally, so the `g2` command will be in your path:
 
 ```bash
   # NOTE: You may need to use sudo or log in as root
-  npm install -g `@synthetos/g2core-api`
+  npm install -g `g2core-api`
 ```
 
 Now you can just execute the `g2` command to get a full "terminal" experience to g2core device.
 
-Or, if you have already `@synthetos/g2core-api` installed and in your local `node_modules`, you can refer to it as `node_modules/.bin/g2` instead.
+Or, if you have already `g2core-api` installed and in your local `node_modules`, you can refer to it as `node_modules/.bin/g2` instead.
 
 If there is only one g2core device attached over USB, then you don't need to provide any more parameters:
 

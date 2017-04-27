@@ -1,6 +1,6 @@
 {
   "name": "g2core-api",
-  "version": "0.0.01",
+  "version": "2.0.1",
   "description": "Node module for controlling g2core devices.",
   "main": "lib/g2core-api.js",
   "scripts": {
@@ -23,7 +23,8 @@
     "yargs": "^6.6.0"
   },
   "bin": {
-    "g2": "bin/g2.js"
+    "g2": "bin/g2.js",
+    "g2": "bin/g2_log_analysis.js"
   },
   "devDependencies": {
     "eslint": "^3.16.1",
