@@ -37,7 +37,7 @@ toc::[]
 image:https://raw.githubusercontent.com/wiki/synthetos/g2/images/g2core.png[width="300" height="129" alt="g2core]
 
 
-NOTE: This is the programmer's documentation for the official https://github.com/synthetos/node-g2core-api[g2core-api node module]: `@synthetos/g2core-api`.
+NOTE: This is the programmer's documentation for the official https://github.com/synthetos/node-g2core-api[g2core-api node module]: `g2core-api`.
 
 ## Usage summary
 
@@ -57,8 +57,8 @@ In code, the looks roughly like:
 [source,javascript]
 .example-1.js
 ----
-// Require "@synthetos/g2core-api" to get access to the G2coreAPI class
-const G2coreAPI = require("@synthetos/g2core-api");
+// Require "g2core-api" to get access to the G2coreAPI class
+const G2coreAPI = require("g2core-api");
 // Then create a G2coreAPI object called 'g2'
 var g2 = new G2coreAPI();
 // Setup an error handler
@@ -185,7 +185,7 @@ G2OpenFirstListError::
 [source,javascript]
 .open-example.js
 ----
-const G2coreAPI = require("@synthetos/g2core-api");
+const G2coreAPI = require("g2core-api");
 var g2 = new G2coreAPI();
 
 // For a single port connection:
