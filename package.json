@@ -1,6 +1,6 @@
 {
   "name": "g2core-api",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Node module for controlling g2core devices.",
   "main": "lib/g2core-api.js",
   "scripts": {
