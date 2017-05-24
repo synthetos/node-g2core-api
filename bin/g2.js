@@ -301,6 +301,10 @@ function sendFile(fileName, exitWhenDone) {
   if (fileName) {
     let readStream = fs.createReadStream(fileName);
     readStream.once('open', function() {
+      readStream.resume();
+
+      log_c(util.format('Counting lines...                 \r'));
+
       maxLineNumber = 0;
 
       readStream.setEncoding('utf8');
@@ -310,13 +314,19 @@ function sendFile(fileName, exitWhenDone) {
       });
 
       readStream.once('close', function() {
+        log_c(util.format('Done counting lines.            \r'));
         startSendFile();
       });
 
       readStream.on('data', function(data) {
         last_index = -1;
-        while ((last_index = data.indexOf('\n')) > 0) {
-          maxLineNumber++;
+        while (1) {
+          last_index = data.indexOf('\n', last_index+1);
+          if (last_index > 0) {
+            maxLineNumber++;
+          } else {
+            break;
+          }
         };
       });
     });
