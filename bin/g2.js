@@ -303,8 +303,6 @@ function sendFile(fileName, exitWhenDone) {
     readStream.once('open', function() {
       maxLineNumber = 0;
 
-      let readBuffer = '';
-
       readStream.setEncoding('utf8');
 
       readStream.once('end', function() {
@@ -316,26 +314,14 @@ function sendFile(fileName, exitWhenDone) {
       });
 
       readStream.on('data', function(data) {
-        readBuffer += data.toString();
-
-        // Split collected data by line endings
-        let lines = readBuffer.split(/(\r\n|\r|\n)+/);
-
-        // If there is leftover data,
-        readBuffer = lines.pop();
-
-        lines.forEach(function(line) {
-          if (line.match(/^(?:[nN][0-9]+\s*)?(.*)$/))
-            return;
-
+        last_index = -1;
+        while ((last_index = data.indexOf('\n')) > 0) {
           maxLineNumber++;
-        });
+        };
       });
     });
 
-    readStream.on('error', function(e) {
-
-    });
+    readStream.on('error', function(e) {});
   } else {
     startSendFile();
   }
