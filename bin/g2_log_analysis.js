@@ -25,6 +25,12 @@ let args = require('yargs')
     desc: 'Output a point cloud, with x, y, z, r, g, b as the columns, ' +
           'color is distance from set temperature',
   })
+  .option('heat_scale', {
+    desc: 'Scale value for heat_cloud. Red = temp + heat_scale,' +
+          'Blue = temp - heat_scale ',
+    default: 5,
+    type: 'number',
+  })
   .option('temp_graph', {
     alias: 't',
     boolean: true,
@@ -35,6 +41,11 @@ let args = require('yargs')
     boolean: true,
     desc: 'Output a point cloud, with x, y, z, r, g, b as the columns, ' +
           'color is velocity, from black = 0 to white = 255',
+  })
+  .option('motors', {
+    boolean: true,
+    desc: 'Output a point cloud, with x, y, z, r, g, b as the columns, ' +
+          'color is motor stall-guard-value, from black = 0 to white = 255',
   })
   .option('log_default', {
     alias: 'L',
@@ -56,6 +67,7 @@ status = {
   'posx': 0, 'posy': 0, 'posz': 0,
   'he1st': 0, 'he1st': 0, 'he1t': 0, 'he1op': 0, 'he1p': 0, 'he1i': 0,
   'he1d': 0, 'he1f': 0, 'pid1p': 0, 'pid1i': 0, 'pid1d': 0, 'pid1f': 0,
+  '1sgr': 0, '2sgr': 0, '3sgr': 0, '4sgr': 0, '5sgr': 0,
 };
 
 first_tc = -1;
@@ -125,7 +137,7 @@ rl.on('line', (line) => {
         );
       }
     } else
-    if (args.power_cloud || args.heat_cloud || args.velocity) {
+    if (args.power_cloud || args.heat_cloud || args.velocity || args.motors) {
       if ('posx' in sr || 'posy' in sr || 'posz' in sr) {
         let red = 0;
         let green = 0;
@@ -140,14 +152,18 @@ rl.on('line', (line) => {
         } else if (args.heat_cloud) {
           red = Math.min(
             Math.max(0, status.he1t - status.he1st),
-            1.0)/1.0;
+            args.heat_scale)/args.heat_scale;
           blue = Math.min(
             Math.max(0, status.he1st - status.he1t),
-            1.0)/1.0;
+            args.heat_scale)/args.heat_scale;
         } else if (args.velocity) {
           red = Math.max(status.vel / 255, 1);
           green = red;
           blue = red;
+        } else if (args.motors) {
+          red = 1.0-Math.min(1.0, status['1sgr']/100);
+          green = 1.0-Math.min(1.0, status['2sgr']/100);
+          blue = 1.0-Math.min(1.0, status['4sgr']/100);
         }
 
         process.stdout.write(
