@@ -28,7 +28,7 @@ First install the `g2core-api` npm globally, so the `g2` command will be in your
 
 ```bash
   # NOTE: You may need to use sudo or log in as root
-  npm install -g `g2core-api`
+  npm install -g g2core-api
 ```
 
 Now you can just execute the `g2` command to get a full "terminal" experience to g2core device.
