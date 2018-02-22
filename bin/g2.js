@@ -345,12 +345,14 @@ function openg2() {
     g.openFirst(/* fail if multiple:*/ true, {
       timedSendsOnly: args.timed,
       useChecksums: args.checksum,
+      dontSetup: args.init,
     });
   } else {
     g.open(args.port, {
       dataPortPath: args.dataport,
       timedSendsOnly: args.timed,
       useChecksums: args.checksum,
+      dontSetup: args.init,
     });
   }
 
