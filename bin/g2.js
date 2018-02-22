@@ -246,7 +246,7 @@ function tryToQuit() {
     if ((quitAttempts > 0) ||
         STAT_CODES[latestMotionStatus].match(/^(Hold|Init|Stop|End|Ready)$/)
        ) {
-      g.write('\x04'); // send the ^d
+      // g.write('\x04'); // send the ^d
     }
     if (rl !== null) {
       rl.close();
