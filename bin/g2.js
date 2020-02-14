@@ -387,10 +387,14 @@ function openg2() {
         process.stdin.on('keypress', function(ch, k) {
           if (k && k.ctrl) {
             if (k.name == 'd') {
-              if (sendingFile) {
+              // if (sendingFile) {
                 log(util.format('>>^d\n'));
                 g.write('\x04'); // send the ^d
-              }
+              // }
+              return;
+            } else if (k.name == 'e') {
+              log(util.format('>>^e\n'));
+              g.write('\x05'); // send the ^e
               return;
             } else if (k.name == 'c') {
               let e = util.format('## Received CTRL-C in State \'%s\' -- ' +
@@ -404,6 +408,10 @@ function openg2() {
 
               tryToQuit();
               return;
+            } else {
+              if (interactive) {
+                process.stdout.write(chalk.dim(`Unknown control character: ${k.name}\n`));
+            }
             }
 
           // Single character commands get sent immediately
