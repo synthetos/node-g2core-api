@@ -27,7 +27,7 @@
     "g2_log_analysis": "bin/g2_log_analysis.js"
   },
   "devDependencies": {
-    "eslint": "^3.16.1",
+    "eslint": "^4.18.2",
     "eslint-config-google": "^0.7.1"
   }
 }
