@@ -411,7 +411,7 @@ function openg2() {
             } else {
               if (interactive) {
                 process.stdout.write(chalk.dim(`Unknown control character: ${k.name}\n`));
-            }
+              }
             }
 
           // Single character commands get sent immediately
@@ -460,6 +460,26 @@ function openg2() {
           }
 
           if (interactive) {
+            // synthesize `pos` from `mpo` and `ofs` if availabile
+            if (status.mpox != undefined && status.ofsx != undefined) {
+              status.posx = status.mpox - status.ofsx;
+            }
+            if (status.mpoy != undefined && status.ofsy != undefined) {
+              status.posy = status.mpoy - status.ofsy;
+            }
+            if (status.mpoz != undefined && status.ofsz != undefined) {
+              status.posz = status.mpoz - status.ofsz;
+            }
+            if (status.mpoa != undefined && status.ofsa != undefined) {
+              status.posa = status.mpoa - status.ofsa;
+            }
+            if (status.mpob != undefined && status.ofsb != undefined) {
+              status.posb = status.mpob - status.ofsb;
+            }
+            if (status.mpoc != undefined && status.ofsc != undefined) {
+              status.posc = status.mpoc - status.ofsc;
+            }
+
             readline.moveCursor(process.stdout, 0, -1);
             readline.clearLine(process.stdout, 0);
 
