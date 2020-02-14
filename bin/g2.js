@@ -14,16 +14,20 @@ let sprintf = require('sprintf-js').sprintf;
 let rl = null; // placeholder for readline object
 
 let STAT_CODES = {
-  0: 'Init',
-  1: 'Ready',
-  2: 'ALARM',
-  3: 'Stop',
-  4: 'Ended',
-  5: 'Running',
-  6: 'Hold',
-  7: 'Probing',
-  8: 'Running Cycle',
-  9: 'Homing',
+  0: 'Init',          // [0] machine is initializing
+  1: 'Ready',         // [1] machine is ready for use
+  2: 'ALARM',         // [2] machine in alarm state
+  3: 'Stop',          // [3] program stop/no more blocks
+  4: 'Ended',         // [4] program end
+  5: 'Running',       // [5] machine is running
+  6: 'Hold',          // [6] machine is holding
+  7: 'Probing',       // [7] probe cycle activ
+  8: 'Running Cycle', // [8] reserved for canned cycles
+  9: 'Homing',        // [9] homing cycle active
+ 10: 'Jogging',       // [10] jogging cycle active
+ 11: 'Interlock',     // [11] machine in safety interlock hold
+ 12: 'SHUTDOWN',      // [12] machine in shutdown state
+ 13: 'PANIC',         // [13] machine in panic state
 };
 
 let args = require('yargs')
