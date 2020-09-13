@@ -263,6 +263,8 @@ function tryToQuit() {
   }
 }
 
+let feedRateOverride = 1.0;
+let spindleRateOverride = 1.0;
 let maxLineNumber = 0;
 /**
  * sendFile send a file
@@ -386,17 +388,17 @@ function openg2() {
         process.stdin.removeAllListeners('keypress');
         process.stdin.on('keypress', function(ch, k) {
           if (k && k.ctrl) {
-            if (k.name == 'd') {
+            if (!k.shift && k.name == 'd') {
               // if (sendingFile) {
                 log(util.format('>>^d\n'));
                 g.write('\x04'); // send the ^d
               // }
               return;
-            } else if (k.name == 'e') {
+            } else if (k.shift && k.name == 'e') {
               log(util.format('>>^e\n'));
               g.write('\x05'); // send the ^e
               return;
-            } else if (k.name == 'c') {
+            } else if (!k.shift && k.name == 'c') {
               let e = util.format('## Received CTRL-C in State \'%s\' -- ' +
                                   'sending CTRL-D and exiting.\n',
                                   STAT_CODES[latestMotionStatus]
@@ -408,9 +410,33 @@ function openg2() {
 
               tryToQuit();
               return;
+            } else if (!k.shift && k.name == 'up') {
+              feedRateOverride += 0.01;
+              g.write({'fro': feedRateOverride}); // send the fro
+              return;
+            } else if (!k.shift && k.name == 'down') {
+              feedRateOverride -= 0.01;
+              g.write({'fro': feedRateOverride}); // send the fro
+              return;
+            } else if (!k.shift && k.name == 'left') {
+              feedRateOverride = 1;
+              g.write({'fro': feedRateOverride}); // send the fro
+              return;
+            } else if (k.name == 'up') { // assumes k.shift
+              spindleRateOverride += 0.01;
+              g.write({'spo': spindleRateOverride}); // send the spo
+              return;
+            } else if (k.name == 'down') { // assumes k.shift
+              spindleRateOverride -= 0.01;
+              g.write({'spo': spindleRateOverride}); // send the spo
+              return;
+            } else if (k.name == 'left') { // assumes k.shift
+              spindleRateOverride = 1;
+              g.write({'spo': spindleRateOverride}); // send the spo
+              return;
             } else {
               if (interactive) {
-                process.stdout.write(chalk.dim(`Unknown control character: ${k.name}\n`));
+                process.stdout.write(chalk.dim(`Unknown control character: ${k.ctrl?'^':''}${k.shift?'⇧':''}${k.name}\n`));
               }
             }
 
@@ -484,12 +510,15 @@ function openg2() {
             readline.clearLine(process.stdout, 0);
 
             process.stdout.write(
-              sprintf('\rPos: X=%4.2f Y=%4.2f Z=%4.2f A=%4.2f Vel:%4.2f',
+              sprintf('\rPos: X=%4.2f Y=%4.2f Z=%4.2f A=%4.2f Vel:%4.2f Feed:%4.2f (F%3.0f%%/S%3.0f%%)',
                 status.posx||0,
                 status.posy||0,
                 status.posz||0,
                 status.posa||0,
-                status.vel||0
+                status.vel ||0,
+                status.feed ||0,
+                feedRateOverride*100.0,
+                spindleRateOverride*100.0
               )
             );
             if (status.he1t > 0) {
