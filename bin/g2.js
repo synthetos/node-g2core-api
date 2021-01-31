@@ -140,8 +140,9 @@ g.on('error', function(err) {
   }
 });
 
-if (args.list) {
-  g.list().then(function(results) {
+async function main() {
+  if (args.list) {
+    const results = await g.list();
     for (let i = 0; i < results.length; i++) {
       let item = results[i];
       log_c(util.inspect(item));
@@ -151,12 +152,12 @@ if (args.list) {
       noG2Found();
       process.exit(0);
     }
-  }).catch(function(e) {
- throw e;
-});
-} else {
-  openg2();
-}
+  } else {
+    openg2();
+  }
+};
+
+main();
 
 /**
  * noG2Found - internal use only
